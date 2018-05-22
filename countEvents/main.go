@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -31,10 +32,10 @@ type CalendarResponse struct {
 }
 
 // Filter the events because cancelled events are not valid
-func GetValidEvents(calendarResponse CalendarResponse) []CalendarEvent {
+func GetValidEvents(calendarResponse CalendarResponse, query string) []CalendarEvent {
 	validEvents := make([]CalendarEvent, 0)
 	for _, event := range calendarResponse.Items {
-		if event.Status != "cancelled" {
+		if event.Status != "cancelled" && strings.Contains(event.Summary, query) {
 			validEvents = append(validEvents, event)
 		}
 	}
@@ -44,9 +45,10 @@ func GetValidEvents(calendarResponse CalendarResponse) []CalendarEvent {
 func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	calendarID := url.QueryEscape(os.Getenv("CALENDAR_ID"))
 	apiKey := os.Getenv("GCALENDAR_API_KEY")
-	query := url.QueryEscape(request.QueryStringParameters["query"])
+	query := request.QueryStringParameters["query"]
+	safeQuery := url.QueryEscape(query)
 
-	endpoint := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events?q=%s", calendarID, query)
+	endpoint := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events?q=%s", calendarID, safeQuery)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
@@ -90,7 +92,7 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	}
 
 	// Filter the events to avoid cancelled events
-	validEvents := GetValidEvents(calendarResponse)
+	validEvents := GetValidEvents(calendarResponse, query)
 
 	response := Response{Count: len(validEvents)}
 	json, _ := json.Marshal(response)
