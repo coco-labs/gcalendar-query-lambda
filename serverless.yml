@@ -1,0 +1,25 @@
+service: gcalendar
+
+provider:
+  name: aws
+  runtime: go1.x
+  environment:
+    GCALENDAR_API_KEY: REPLACE ME
+    CALENDAR_ID: carlos.martinez@wizeline.com
+
+package:
+ exclude:
+   - ./**
+ include:
+   - ./bin/**
+
+functions:
+  countEvents:
+    handler: bin/countEvents
+    events:
+      - http:
+          path: countEvents
+          method: get
+          parameters:
+            querystrings:
+              query: true
