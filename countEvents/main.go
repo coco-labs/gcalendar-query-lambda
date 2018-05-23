@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -47,8 +48,9 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	apiKey := os.Getenv("GCALENDAR_API_KEY")
 	query := request.QueryStringParameters["query"]
 	safeQuery := url.QueryEscape(query)
+	timeMax := time.Now().Format(time.RFC3339)
 
-	endpoint := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events?q=%s", calendarID, safeQuery)
+	endpoint := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/%s/events?q=%s&timeMax=%s", calendarID, safeQuery, timeMax)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
